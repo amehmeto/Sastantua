@@ -5,49 +5,31 @@ export class Sastantua {
     private BRICK: string = '*'
     private SPACE: string = ' '
     private DOOR: string = '|'
-    private firstTopHeight: number = 3
+    private FIRST_TOP_HEIGHT: number = 3
     private bottomStageLines: number = 1
+    private EMPTY_STRING = ''
 
     draw(size: number): string {
-        if (size === 1)
-            return this.generateFirstFloor(this.firstTopHeight, size)
-        return this.generateTopFloors(1) +
-            this.generateFirstFloor(this.firstTopHeight + 1, size)
+        return this.generateFloors(this.FIRST_TOP_HEIGHT)
     }
 
-    private generateFirstFloor(height: number, size: number) {
-        return this.generateRegularLines(
-                size,
-                height - this.bottomStageLines,
-                ''
-            ) + this.generateDoorLines()
+    private generateFloors(size: number) {
+        return this.generateRegularLines(size)
     }
 
-    private generateTopFloors(size: number) {
-        return this.generateRegularLines(size, this.firstTopHeight, '')
-    }
+    private generateRegularLines(size: number) {
+        let lines = this.EMPTY_STRING
+        let height = this.FIRST_TOP_HEIGHT
+        for (let line = 0 ; height ; height--) {
+            let neededElements = {
+                bricks: 1 + (line++ - 1),
+                spaces: height - 1,
+                door: 0
+            }
 
-    private generateRegularLines(size: number, lastLine: number, accumulator: string): string {
-        let neededElement: Elements = {
-            bricks: 0, spaces: 0, door: 0
+            lines += this.generateLine(LineType.REGULAR, neededElements)
         }
-        if (size === 1){
-            neededElement.bricks = lastLine - 1
-            neededElement.spaces = this.firstTopHeight - lastLine
-            neededElement.door = 0
-        } else {
-            neededElement.bricks = lastLine + size + 2
-            neededElement.spaces = this.firstTopHeight - lastLine + 1
-            neededElement.door = 0
-        }
-        if (lastLine === 0)
-            return accumulator
-        return this.generateRegularLines(
-            size,
-            lastLine - 1,
-            this.generateLine(LineType.REGULAR, neededElement
-            ) + accumulator
-        )
+        return lines
     }
 
     private generateDoorLines() {
