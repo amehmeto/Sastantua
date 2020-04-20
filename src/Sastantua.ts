@@ -6,46 +6,58 @@ export class Sastantua {
     private SPACE: string = ' '
     private DOOR: string = '|'
     private TOP_FLOOR_HEIGHT: number = 3
-    private BOTTOM_STAGE_LINES: number = 1
     private EMPTY_STRING = ''
 
-    draw(size: number): string {
-        return this.generateFloors(size)
+    draw(pyramidSize: number): string {
+        const regularFloors = this.generateRegularFloors(pyramidSize)
+        return regularFloors.lines + this.generateFirstFloor(pyramidSize, regularFloors.lineNumber)
     }
 
-    private generateFloors(totalFloors: number) {
+    private generateRegularFloors(pyramidSize: number) {
         let lines = this.EMPTY_STRING
         let lineNumber = 1
-
-        for (let floor = 1 ; floor <= totalFloors ; floor++) {
-            let _ret = this.generateRegularLines(floor, totalFloors, lineNumber++)
+        for (let floor = 1 ; floor <= pyramidSize - 1 ; floor++) {
+            let _ret = this.generateRegularLines(floor, pyramidSize, lineNumber++)
             lineNumber = _ret.lineNumber
             lines += _ret.lines
-        }
-
-        return lines
-    }
-
-    private generateRegularLines(currentFloor: number, totalFloors: number, lineNumber: number) {
-        let lines = this.EMPTY_STRING
-
-        for (let linesToBuild = this.getHeight(currentFloor) ; linesToBuild ; linesToBuild--) {
-            let neededElements = this.getNeededElements(lineNumber++, totalFloors, linesToBuild, currentFloor)
-            lines += this.generateLine(LineType.REGULAR, neededElements)
         }
         return { lines, lineNumber }
     }
 
-    private getHeight(size: number): number {
-        if (size === 1)
-            return this.TOP_FLOOR_HEIGHT
-        return this.getHeight(size - 1) + 1
+    private generateRegularLines(currentFloor: number, pyramidSize: number, lineNumber: number) {
+        let lines = this.EMPTY_STRING
+        for (let linesToBuild = this.getHeightOf(currentFloor) ; linesToBuild ; linesToBuild--) {
+            let neededElements =
+                this.getNeededElements(lineNumber++, pyramidSize, linesToBuild, currentFloor, LineType.REGULAR)
+            lines += this.buildLine(LineType.REGULAR, neededElements)
+        }
+        return { lines, lineNumber }
     }
 
-    private getNeededElements(line: number, totalFloors: number, height: number, currentFloor: number) {
+    private getHeightOf(floor: number): number {
+        if (floor === 1)
+            return this.TOP_FLOOR_HEIGHT
+        return this.getHeightOf(floor - 1) + 1
+    }
+
+    private getNeededElements(
+        line: number,
+        pyramidSize: number,
+        lineHeightInFloor: number,
+        currentFloor: number,
+        lineType: LineType
+    ) {
+        if (lineType === LineType.DOOR) {
+            const doorNeededBySide = Math.floor(pyramidSize / 2)
+            return {
+                bricks: this.calculateNeededBricksForOneSide(line, currentFloor) - doorNeededBySide,
+                spaces: this.calculateNeededOffset(lineHeightInFloor, currentFloor, pyramidSize),
+                door: doorNeededBySide,
+            }
+        }
         return {
             bricks: this.calculateNeededBricksForOneSide(line, currentFloor),
-            spaces: this.calculateNeededOffset(height, currentFloor, totalFloors),
+            spaces: this.calculateNeededOffset(lineHeightInFloor, currentFloor, pyramidSize),
             door: 0,
         }
     }
@@ -62,72 +74,103 @@ export class Sastantua {
             + this.calculateSuperiorFloorsCumulatedOffset(currentFloor - 1)
     }
 
-    private calculateNeededOffset(height: number, currentFloor: number, totalFloors: number): number {
-        const triangleOffsetByDefault = this.getTriangleOffsetByDefault(height)
-        const offsetForNewFloor = this.calculateSubFloorsOffset(currentFloor, totalFloors)
-        const offsetForSubFloorsLines = this.countSubFloorsLinesFromFloor(totalFloors - 1, currentFloor - 1)
-        return triangleOffsetByDefault + offsetForSubFloorsLines + offsetForNewFloor
+    private calculateNeededOffset(lineHeightInFloor: number, currentFloor: number, pyramidSize: number): number {
+        const triangleOffsetByDefault = this.getDefaultTriangleOffset(lineHeightInFloor)
+        const offsetForNewFloor = this.calculateInferiorFloorsOffset(currentFloor, pyramidSize)
+        const offsetForInferiorFloorsLines = this.countInferiorFloorsLinesFromFloor(pyramidSize - 1, currentFloor - 1)
+        return triangleOffsetByDefault + offsetForInferiorFloorsLines + offsetForNewFloor
     }
 
-    private getTriangleOffsetByDefault(height: number) {
-        return height - 1
+    private getDefaultTriangleOffset(lineHeightInFloor: number) {
+        return lineHeightInFloor - 1
     }
 
-    private calculateSubFloorsOffset(currentFloor: number, totalFloors: number): number {
-        if (totalFloors - currentFloor === 0)
+    private calculateInferiorFloorsOffset(currentFloor: number, pyramidSize: number): number {
+        if (pyramidSize - currentFloor === 0)
             return 0
-        return this.getCurrentFloorOffset(currentFloor) + this.calculateSubFloorsOffset(currentFloor + 1, totalFloors)
+        return this.getCurrentFloorOffset(currentFloor) + this.calculateInferiorFloorsOffset(currentFloor + 1, pyramidSize)
     }
 
     private getCurrentFloorOffset(currentFloor: number) {
         return Math.ceil(currentFloor / 2) + 1
     }
 
-    private countSubFloorsLinesFromFloor(floor: number, to: number): number {
+    private countInferiorFloorsLinesFromFloor(floor: number, to: number): number {
         if (floor === to)
             return 0
-        return this.getFloorHeight(floor) + this.countSubFloorsLinesFromFloor(floor - 1, to)
+        return this.getFloorHeight(floor) + this.countInferiorFloorsLinesFromFloor(floor - 1, to)
     }
 
     private getFloorHeight(stage: number) {
         return this.TOP_FLOOR_HEIGHT + stage
     }
 
-    private generateDoorLines() {
-        const neededElements = {
-            spaces: 0, bricks: 2, door: 1
+    private generateFirstFloor(pyramidSize: number, lineNumber: number) {
+        let lines = this.EMPTY_STRING
+        const currentFloor = pyramidSize
+        let lineHeightInFloor = this.getHeightOf(currentFloor)
+
+        let neededElements = this.getNeededElements(lineNumber++, pyramidSize, lineHeightInFloor--, currentFloor, LineType.REGULAR)
+        lines += this.buildLine(LineType.REGULAR, neededElements)
+        neededElements = this.getNeededElements(lineNumber++, pyramidSize, lineHeightInFloor--, currentFloor, LineType.REGULAR)
+        lines += this.buildLine(LineType.REGULAR, neededElements)
+
+        while (lineHeightInFloor) {
+            if (pyramidSize >= 5 && lineHeightInFloor === Math.ceil((this.getHeightOf(currentFloor) - 2) / 2) ){
+                neededElements = this.getNeededElements(lineNumber++, pyramidSize, lineHeightInFloor--, currentFloor, LineType.DOOR)
+                lines += this.generateLockLine(neededElements)
+            }
+            else {
+                neededElements = this.getNeededElements(lineNumber++, pyramidSize, lineHeightInFloor--, currentFloor, LineType.DOOR)
+                lines += this.generateDoorLines(neededElements)
+            }
         }
-        return this.generateLine(LineType.DOOR, neededElements)
+        return lines
     }
 
-    private generateLine(lineType: string, neededElements: Elements) {
+    private generateDoorLines(neededElements: Elements) {
+        return this.buildLine(LineType.DOOR, neededElements)
+    }
+
+    private generateLockLine(neededElements: Elements) {
+        return this.buildLine(LineType.LOCK, neededElements)
+    }
+
+    private buildLine(lineType: string, neededElements: Elements) {
+        const potentialLock = this.accumulateElements(neededElements.door, this.DOOR)
+        let lock = ''
+        if (lineType === LineType.LOCK)
+            lock = potentialLock.substr(0, potentialLock.length - 2) + '$|'
+        else
+            lock = potentialLock
         return this.accumulateElements(neededElements.spaces, this.SPACE) +
             this.LEFT_SLOPE +
             this.accumulateElements(neededElements.bricks, this.BRICK) +
+            this.accumulateElements(neededElements.door, this.DOOR) +
             this.generateCentralElement(lineType) +
+            lock +
             this.accumulateElements(neededElements.bricks, this.BRICK) +
             this.RIGHT_SLOPE + this.NEW_LINE
     }
 
     private generateCentralElement(lineType: string) {
-        return (lineType === LineType.REGULAR) ? this.BRICK : this.DOOR
+        return (lineType === LineType.DOOR || lineType === LineType.LOCK) ? this.DOOR : this.BRICK
     }
 
     private accumulateElements(elementsNeeded: number, accumulator: string): string {
         const baseElement = accumulator.charAt(0)
-        if (elementsNeeded === 0)
+        if (elementsNeeded <= 0)
             return ''
         if (elementsNeeded === 1)
             return accumulator
-        return this.accumulateElements(
-            elementsNeeded - 1, accumulator + baseElement
-        )
+        return this.accumulateElements(elementsNeeded - 1, accumulator + baseElement)
     }
 }
 
 enum LineType {
     REGULAR = 'regular',
-    DOOR = 'door'
+    DOOR = 'door',
+    LOCK = 'lock',
 }
 
 type Elements = {
