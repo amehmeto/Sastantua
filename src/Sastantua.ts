@@ -17,7 +17,7 @@ export class Sastantua {
 		let lines = this.EMPTY_STRING
 		let lineNumber = 1
 		for (let floor = 1 ; floor <= pyramidSize - 1 ; floor++) {
-			let _ret = this.generateRegularLines(floor, pyramidSize, lineNumber--)
+			let _ret = this.generateRegularLines(floor, pyramidSize, lineNumber)
 			lineNumber = _ret.lineNumber
 			lines += _ret.lines
 		}
